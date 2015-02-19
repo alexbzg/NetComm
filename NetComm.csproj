@@ -64,6 +64,12 @@
     <Compile Include="FModuleSettings.designer.cs">
       <DependentUpon>FModuleSettings.cs</DependentUpon>
     </Compile>
+    <Compile Include="FRelaySettings.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FRelaySettings.Designer.cs">
+      <DependentUpon>FRelaySettings.cs</DependentUpon>
+    </Compile>
     <Compile Include="InputBox.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -90,6 +96,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="FModuleSettings.resx">
       <DependentUpon>FModuleSettings.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="FRelaySettings.resx">
+      <DependentUpon>FRelaySettings.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="InputBox.resx">
       <DependentUpon>InputBox.cs</DependentUpon>

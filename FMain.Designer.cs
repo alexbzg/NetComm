@@ -35,24 +35,27 @@
             this.miWatch = new System.Windows.Forms.ToolStripMenuItem();
             this.tssConnectionsSeparator = new System.Windows.Forms.ToolStripSeparator();
             this.miConnectionsList = new System.Windows.Forms.ToolStripMenuItem();
+            this.miRelaySettings = new System.Windows.Forms.ToolStripMenuItem();
             this.miModuleSettings = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStrip.SuspendLayout();
             this.SuspendLayout();
             // 
             // toolStrip
             // 
+            this.toolStrip.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.toolStrip.AutoSize = false;
             this.toolStrip.BackColor = System.Drawing.SystemColors.ControlDarkDark;
-            this.toolStrip.Dock = System.Windows.Forms.DockStyle.Left;
+            this.toolStrip.Dock = System.Windows.Forms.DockStyle.None;
             this.toolStrip.Font = new System.Drawing.Font("Arial", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.toolStrip.GripMargin = new System.Windows.Forms.Padding(0);
             this.toolStrip.GripStyle = System.Windows.Forms.ToolStripGripStyle.Hidden;
             this.toolStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.ddbSettings});
+            this.toolStrip.LayoutStyle = System.Windows.Forms.ToolStripLayoutStyle.VerticalStackWithOverflow;
             this.toolStrip.Location = new System.Drawing.Point(0, 0);
             this.toolStrip.Name = "toolStrip";
             this.toolStrip.Padding = new System.Windows.Forms.Padding(0);
-            this.toolStrip.Size = new System.Drawing.Size(105, 288);
+            this.toolStrip.Size = new System.Drawing.Size(62, 291);
             this.toolStrip.TabIndex = 0;
             this.toolStrip.MouseClick += new System.Windows.Forms.MouseEventHandler(this.toolStrip_MouseClick);
             // 
@@ -66,6 +69,7 @@
             this.miWatch,
             this.tssConnectionsSeparator,
             this.miConnectionsList,
+            this.miRelaySettings,
             this.miModuleSettings});
             this.ddbSettings.Image = ((System.Drawing.Image)(resources.GetObject("ddbSettings.Image")));
             this.ddbSettings.ImageTransparentColor = System.Drawing.Color.Magenta;
@@ -97,6 +101,13 @@
             this.miConnectionsList.Text = "Подключения";
             this.miConnectionsList.Click += new System.EventHandler(this.miConnectionsList_Click);
             // 
+            // miRelaySettings
+            // 
+            this.miRelaySettings.Name = "miRelaySettings";
+            this.miRelaySettings.Size = new System.Drawing.Size(221, 22);
+            this.miRelaySettings.Text = "Настройки реле";
+            this.miRelaySettings.Click += new System.EventHandler(this.miRelaySettings_Click);
+            // 
             // miModuleSettings
             // 
             this.miModuleSettings.Name = "miModuleSettings";
@@ -109,9 +120,10 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 18F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.SystemColors.ControlDarkDark;
-            this.ClientSize = new System.Drawing.Size(104, 288);
+            this.ClientSize = new System.Drawing.Size(58, 288);
             this.Controls.Add(this.toolStrip);
             this.Font = new System.Drawing.Font("Arial", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedToolWindow;
             this.Margin = new System.Windows.Forms.Padding(4);
             this.MaximizeBox = false;
             this.MinimizeBox = false;
@@ -133,6 +145,7 @@
         private System.Windows.Forms.ToolStripMenuItem miModuleSettings;
         private System.Windows.Forms.ToolStripMenuItem miControl;
         private System.Windows.Forms.ToolStripMenuItem miWatch;
+        private System.Windows.Forms.ToolStripMenuItem miRelaySettings;
     }
 }
 

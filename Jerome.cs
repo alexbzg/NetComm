@@ -44,7 +44,7 @@ namespace Jerome
             }
         }
 
-        private static int timeout = 1000;
+        private static int timeout = 10000;
         private static Regex rEVT = new Regex(@"#EVT,IN,\d+,(\d+),(\d)"); 
         
         // ManualResetEvent instances signal completion.
@@ -372,6 +372,7 @@ namespace Jerome
             else
                 return false;
         }
+
 
         public JeromeControllerState getState()
         {

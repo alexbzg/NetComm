@@ -18,7 +18,7 @@ namespace NetComm
     {
         public static int[] lines = { 5, 4, 3, 2, 1, 6 };
 
-        private Dictionary<JeromeConnectionParams, ConnectionState> connections = new Dictionary<JeromeConnectionParams,ConnectionState>();
+        private Dictionary<JeromeConnectionParams, JeromeConnectionState> connections = new Dictionary<JeromeConnectionParams,JeromeConnectionState>();
         private List<ToolStripButton> buttons = new List<ToolStripButton>();
         private List<string> buttonLabels = new List<string>();
         private Dictionary<JeromeConnectionParams, ToolStripMenuItem> menuControl = new Dictionary<JeromeConnectionParams, ToolStripMenuItem>();
@@ -44,7 +44,15 @@ namespace NetComm
         public FMain()
         {
             InitializeComponent();
-            readConfig();
+            Width = 65;
+            if (!readConfig())
+            {
+                connections = new Dictionary<JeromeConnectionParams, JeromeConnectionState>();
+                buttonLabels = new List<string>();
+                for (int co = 0; co < lines.Count(); co++)
+                    buttonLabels.Add("");
+            }
+            miRelaySettings.Enabled = connections.Count > 0;
             foreach ( JeromeConnectionParams c in connections.Keys )
                 createConnectionMI( c );
             for (int co = 0; co < lines.Count(); co++)
@@ -57,8 +65,6 @@ namespace NetComm
                 b.CheckOnClick = true;
                 b.Enabled = false;
                 b.CheckedChanged += new EventHandler( delegate( object obj, EventArgs e ) {
-                    Parallel.ForEach(connections.Where(x => x.Value.active && x.Value.connected), x =>
-                        { x.Value.controller.switchLine(lines[no], b.Checked ? 1 : 0); });
                     if (b.Checked)
                     {
                         buttons.Where(x => x != b).ToList().ForEach(x => x.Checked = false);
@@ -68,6 +74,9 @@ namespace NetComm
                     {
                         b.ForeColor = buttonsColor;
                     }
+                    System.Diagnostics.Debug.WriteLine(b.Text + (b.Checked ? " on" : " off"));
+                    Parallel.ForEach(connections.Where(x => x.Value.active && x.Value.connected), x =>
+                    { x.Value.controller.switchLine(lines[x.Value.lines[no] - 1], b.Checked ? 1 : 0); });
                 });
                 toolStrip.Items.Add(b);
             }
@@ -162,11 +171,14 @@ namespace NetComm
         {
             JeromeConnectionParams c = ((JeromeController)obj).connectionParams;
             if (!e.requested)
-                MessageBox.Show( c.name + ": cвязь потеряна!");
+                MessageBox.Show( c.name + ": cвязь потеряна!", "NetCommAnt" );
             connections[c].active = false;
-            menuWatch[c].Visible = true;
-            menuControl[c].Checked = false;
-            updateButtonsMode();
+            this.Invoke((MethodInvoker)delegate
+            {
+                menuWatch[c].Visible = true;
+                menuControl[c].Checked = false;
+                updateButtonsMode();
+            });
         }
 
         private void FMain_Load(object sender, EventArgs e)
@@ -181,11 +193,12 @@ namespace NetComm
                 AppState s = new AppState();
 
                 s.connections = new JeromeConnectionParams[connections.Count];
-                s.watch = new bool[connections.Count];
+                s.states = new JeromeConnectionState[connections.Count];
                 int co = 0;
-                foreach ( KeyValuePair<JeromeConnectionParams,ConnectionState> x in connections ) {
+                foreach (KeyValuePair<JeromeConnectionParams, JeromeConnectionState> x in connections)
+                {
                     s.connections[co] = x.Key;
-                    s.watch[co] = x.Value.watch;
+                    s.states[co] = x.Value;
                     co++;
                 }
 
@@ -209,16 +222,17 @@ namespace NetComm
                     try
                     {
                         AppState s = (AppState)ser.Deserialize(fs);
-                        if ( s.connections != null )                   
-                            for ( int co = 0; co < s.connections.Count(); co++ )
-                                connections[ s.connections[co] ] = new ConnectionState() { watch = s.watch[co] };
-                        else
-                            connections = new Dictionary<JeromeConnectionParams,ConnectionState>();
+                        connections = new Dictionary<JeromeConnectionParams, JeromeConnectionState>();
+                        for (int co = 0; co < s.connections.Count(); co++)
+                        {
+                            s.states[co].active = false;
+                            connections[s.connections[co]] = s.states[co];
+                        }
                         if (s.buttonLabels != null)
                             buttonLabels = s.buttonLabels.ToList();
                         else
                             buttonLabels = new List<string>();
-                        for ( int co = s.buttonLabels.Count() - 1; co < lines.Count(); co++ )
+                        for ( int co = s.buttonLabels.Count(); co < lines.Count(); co++ )
                             buttonLabels.Add( "" );
                         result = true;
                     }
@@ -247,8 +261,9 @@ namespace NetComm
         private void connectionCreated(object obj, EventArgs e)
         {
             JeromeConnectionParams c = (JeromeConnectionParams)obj;
-            connections[c] = new ConnectionState();
+            connections[c] = new JeromeConnectionState();
             createConnectionMI(c);
+            miRelaySettings.Enabled = true;
             writeConfig();
         }
 
@@ -268,8 +283,11 @@ namespace NetComm
             else
             {
                 connections.Remove(c);
+                miControl.DropDownItems.Remove(menuControl[c]);
                 menuControl.Remove(c);
+                miWatch.DropDownItems.Remove(menuWatch[c]);
                 menuWatch.Remove(c);
+                miRelaySettings.Enabled = connections.Count > 0;
                 writeConfig();
             }
         }
@@ -277,6 +295,7 @@ namespace NetComm
 
         private void toolStrip_MouseClick(object sender, MouseEventArgs e)
         {
+            System.Diagnostics.Debug.WriteLine("Mouse click");
             if (e.Button == MouseButtons.Right)
             {
                 ToolStripItem i = toolStrip.GetItemAt(new Point(e.X, e.Y));
@@ -297,19 +316,36 @@ namespace NetComm
             }
         }
 
+        private void miRelaySettings_Click(object sender, EventArgs e)
+        {
+            FRelaySettings frs = new FRelaySettings(connections, buttonLabels);
+            frs.ShowDialog();
+            if (frs.DialogResult == DialogResult.OK)
+            {
+                for (int co = 0; co < lines.Count(); co++)
+                    connections[frs.connection].lines[co] = frs.cbLines[co].SelectedIndex + 1;
+                writeConfig();
+            }
+        }
+
     }
 
-    public class ConnectionState
+    public class JeromeConnectionState
     {
         public bool watch = false;
         public bool active = false;
         public bool[] linesStates;
         public JeromeController controller = null;
+        public int[] lines;
         
-        public ConnectionState() {
+        public JeromeConnectionState() {
             linesStates =  new bool[FMain.lines.Count()];
+            lines = new int[FMain.lines.Count()];
             for (int co = 0; co < linesStates.Count(); co++)
+            {
                 linesStates[co] = false;
+                lines[co] = co + 1;
+            }
                 
         }
 
@@ -325,7 +361,7 @@ namespace NetComm
     public class AppState
     {
         public JeromeConnectionParams[] connections;
-        public bool[] watch;
+        public JeromeConnectionState[] states;
         public string[] buttonLabels;
     }
 }
