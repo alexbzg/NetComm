@@ -26,7 +26,7 @@ namespace NetComm
             cbLines = new ComboBox[buttonLabels.Count()];
             for ( int co = 0; co < buttonLabels.Count(); co++ ) {
                 ComboBox cb = new ComboBox();
-                for ( int co1 = 0; co1 < buttonLabels.Count(); co1++ )
+                for ( int co1 = 0; co1 < FMain.lines.Count(); co1++ )
                     cb.Items.Add( ( co1 + 1 ).ToString() );
                 cb.Top = 50 + 35 * co;
                 cb.Left = 134;
@@ -45,7 +45,10 @@ namespace NetComm
         {
             connection = _lConnections[cbConnection.SelectedIndex];
             for (int co = 0; co < cbLines.Count(); co++)
-                cbLines[co].SelectedIndex = _connections[connection].lines[co] - 1;
+                if (_connections[connection].lines.Count() > co)
+                    cbLines[co].SelectedIndex = _connections[connection].lines[co] - 1;
+                else
+                    cbLines[co].SelectedIndex = -1;
         }
 
         

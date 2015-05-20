@@ -56,7 +56,7 @@
             // 
             this.bCancel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.bCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.bCancel.Location = new System.Drawing.Point(245, 340);
+            this.bCancel.Location = new System.Drawing.Point(245, 425);
             this.bCancel.Name = "bCancel";
             this.bCancel.Size = new System.Drawing.Size(84, 34);
             this.bCancel.TabIndex = 2;
@@ -67,7 +67,7 @@
             // 
             this.bOK.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.bOK.DialogResult = System.Windows.Forms.DialogResult.OK;
-            this.bOK.Location = new System.Drawing.Point(164, 340);
+            this.bOK.Location = new System.Drawing.Point(164, 425);
             this.bOK.Name = "bOK";
             this.bOK.Size = new System.Drawing.Size(75, 34);
             this.bOK.TabIndex = 3;
@@ -78,7 +78,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(332, 375);
+            this.ClientSize = new System.Drawing.Size(332, 460);
             this.Controls.Add(this.bOK);
             this.Controls.Add(this.bCancel);
             this.Controls.Add(this.cbConnection);

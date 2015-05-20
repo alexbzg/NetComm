@@ -10,21 +10,26 @@ using Jerome;
 using System.IO;
 using System.Xml.Serialization;
 using System.Threading.Tasks;
-using InputBox;
+using ExpertSync;
+using System.Net;
 
 namespace NetComm
 {
     public partial class FMain : Form
     {
         public static int[] lines = { 5, 4, 3, 2, 1, 6 };
+        //public static int buttonsQty = 6;
 
         private Dictionary<JeromeConnectionParams, JeromeConnectionState> connections = new Dictionary<JeromeConnectionParams,JeromeConnectionState>();
-        private List<ToolStripButton> buttons = new List<ToolStripButton>();
+        private List<CheckBox> buttons = new List<CheckBox>();
         private List<string> buttonLabels = new List<string>();
         private Dictionary<JeromeConnectionParams, ToolStripMenuItem> menuControl = new Dictionary<JeromeConnectionParams, ToolStripMenuItem>();
         private Dictionary<JeromeConnectionParams, ToolStripMenuItem> menuWatch = new Dictionary<JeromeConnectionParams, ToolStripMenuItem>();
         private System.Threading.Timer watchTimer;
         private Color buttonsColor;
+        private Dictionary<int, int> esBindings = new Dictionary< int, int> ();
+        private ExpertSyncConnector esConnector;
+        private IPEndPoint esEndPoint;
 
         private bool connected
         {
@@ -44,44 +49,13 @@ namespace NetComm
         public FMain()
         {
             InitializeComponent();
-            Width = 65;
-            if (!readConfig())
-            {
-                connections = new Dictionary<JeromeConnectionParams, JeromeConnectionState>();
-                buttonLabels = new List<string>();
-                for (int co = 0; co < lines.Count(); co++)
-                    buttonLabels.Add("");
-            }
+            Width = 200;
+            readConfig();
+            for (int co = buttonLabels.Count(); co < lines.Count(); co++)
+                buttonLabels.Add("");
             miRelaySettings.Enabled = connections.Count > 0;
             foreach ( JeromeConnectionParams c in connections.Keys )
                 createConnectionMI( c );
-            for (int co = 0; co < lines.Count(); co++)
-            {
-                ToolStripButton b = new ToolStripButton();
-                buttons.Add(b);
-                int no = co;
-                updateButtonLabel(no);
-                b.BackColor = SystemColors.Control;
-                b.CheckOnClick = true;
-                b.Enabled = false;
-                b.CheckedChanged += new EventHandler( delegate( object obj, EventArgs e ) {
-                    if (b.Checked)
-                    {
-                        buttons.Where(x => x != b).ToList().ForEach(x => x.Checked = false);
-                        b.ForeColor = Color.Red;
-                    }
-                    else
-                    {
-                        b.ForeColor = buttonsColor;
-                    }
-                    System.Diagnostics.Debug.WriteLine(b.Text + (b.Checked ? " on" : " off"));
-                    Parallel.ForEach(connections.Where(x => x.Value.active && x.Value.connected), x =>
-                    { x.Value.controller.switchLine(lines[x.Value.lines[no] - 1], b.Checked ? 1 : 0); });
-                });
-                toolStrip.Items.Add(b);
-            }
-            buttonsColor = buttons[0].ForeColor;
-            watchTimer = new System.Threading.Timer( obj => onWatchTimer(), null, 1000, 1000);
         }
 
         private void onWatchTimer()
@@ -157,17 +131,12 @@ namespace NetComm
 
         private void updateButtonsMode()
         {
-            for ( int co = 0; co < lines.Count(); co++ )
+            for ( int co = 0; co < buttons.Count(); co++ )
                 buttons[co].Enabled = connected && 
                     !connections.Values.ToList().Exists(x => x.watch && x.linesStates[co]);
-             /*
-            if (connections.Values.ToList().Exists(x => x.watch && x.linesStates[no]))
-                buttons[no].ForeColor = Color.Red;
-            else
-                buttons[no].ForeColor = toolStrip.ForeColor;*/
         }
 
-        private void controllerDisconnected(object obj, DisconnectEventArgs e)
+        private void controllerDisconnected(object obj, Jerome.DisconnectEventArgs e)
         {
             JeromeConnectionParams c = ((JeromeController)obj).connectionParams;
             if (!e.requested)
@@ -183,7 +152,42 @@ namespace NetComm
 
         private void FMain_Load(object sender, EventArgs e)
         {
-            Width = 50;
+            Width = 100;
+            for (int co = 0; co < lines.Count(); co++)
+            {
+                CheckBox b = new CheckBox();
+                b.Height = 25;
+                b.Width = Width - 7;
+                b.Top = 25 + (b.Height + 2) * co;
+                b.Left = 1;
+                b.TextAlign = ContentAlignment.MiddleCenter;
+                buttons.Add(b);
+                int no = co;
+                updateButtonLabel(no);
+                b.BackColor = SystemColors.Control;
+                b.Appearance = Appearance.Button;
+                b.Enabled = false;
+                b.CheckedChanged += new EventHandler(delegate(object obj, EventArgs ea)
+                {
+                    if (b.Checked)
+                    {
+                        buttons.Where(x => x != b).ToList().ForEach(x => x.Checked = false);
+                        b.ForeColor = Color.Red;
+                    }
+                    else
+                    {
+                        b.ForeColor = buttonsColor;
+                    }
+                    System.Diagnostics.Debug.WriteLine(b.Text + (b.Checked ? " on" : " off"));
+                    Parallel.ForEach(connections.Where(x => x.Value.active && x.Value.connected), x =>
+                    { x.Value.controller.switchLine(lines[x.Value.lines[no] - 1], b.Checked ? 1 : 0); });
+                });
+                b.MouseDown += form_MouseClick;
+                Controls.Add(b);
+            }
+            buttonsColor = buttons[0].ForeColor;
+            watchTimer = new System.Threading.Timer(obj => onWatchTimer(), null, 1000, 1000);
+
         }
 
         public void writeConfig()
@@ -204,6 +208,20 @@ namespace NetComm
 
                 s.buttonLabels = buttonLabels.ToArray();
 
+                s.esMhzValues = new int[ esBindings.Count ];
+                s.esButtons = new int[esBindings.Count];
+                co = 0;
+                foreach ( KeyValuePair<int,int> x in esBindings ) {
+                    s.esMhzValues[co] = x.Key;
+                    s.esButtons[co] = x.Value;
+                    co++;
+                }
+
+                if (esEndPoint != null)
+                {
+                    s.esHost = esEndPoint.Address.ToString();
+                    s.esPort = esEndPoint.Port;
+                }
 
                 XmlSerializer ser = new XmlSerializer(typeof(AppState));
                 ser.Serialize(sw, s);
@@ -222,21 +240,23 @@ namespace NetComm
                     try
                     {
                         AppState s = (AppState)ser.Deserialize(fs);
-                        connections = new Dictionary<JeromeConnectionParams, JeromeConnectionState>();
-                        for (int co = 0; co < s.connections.Count(); co++)
-                        {
-                            s.states[co].active = false;
-                            connections[s.connections[co]] = s.states[co];
-                        }
-                        if (s.buttonLabels != null)
+                        if (s.connections != null)
+                            for (int co = 0; co < s.connections.Count(); co++)
+                            {
+                                s.states[co].active = false;
+                                connections[s.connections[co]] = s.states[co];
+                            }
+                        if (s.buttonLabels != null) 
                             buttonLabels = s.buttonLabels.ToList();
-                        else
-                            buttonLabels = new List<string>();
-                        for ( int co = s.buttonLabels.Count(); co < lines.Count(); co++ )
-                            buttonLabels.Add( "" );
+                        if ( s.esMhzValues != null )
+                            for (int co = 0; co < s.esButtons.Count(); co++)
+                                esBindings[s.esMhzValues[co]] = s.esButtons[co];
+                        IPAddress hostIP;
+                        if (IPAddress.TryParse(s.esHost, out hostIP))
+                            esEndPoint = new IPEndPoint(hostIP, s.esPort);
                         result = true;
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
                     }
                 }
@@ -293,25 +313,38 @@ namespace NetComm
         }
 
 
-        private void toolStrip_MouseClick(object sender, MouseEventArgs e)
+        private void form_MouseClick(object sender, MouseEventArgs e)
         {
             System.Diagnostics.Debug.WriteLine("Mouse click");
             if (e.Button == MouseButtons.Right)
             {
-                ToolStripItem i = toolStrip.GetItemAt(new Point(e.X, e.Y));
-                if (i != null && i.GetType() == typeof(ToolStripButton) && buttons.Contains(i))
+                CheckBox b = null;
+                if (sender.GetType() == typeof(CheckBox))
+                    b = (CheckBox)sender;
+                else
                 {
-                    int no = buttons.IndexOf((ToolStripButton)i);
-                    FInputBox ib = new FInputBox("Переименование кнопки", buttonLabels[no]);
+                    Control i = GetChildAtPoint(new Point(e.X, e.Y));
+                    if (i != null && i.GetType() == typeof(CheckBox))
+                        b = (CheckBox)i;
+                }
+                if ( b != null && buttons.Contains(b))
+                {
+                    int no = buttons.IndexOf(b);
+                    string bindStr = string.Join("; ", esBindings.Where(x => x.Value == no).Select(x => x.Key).ToArray());
+                    FButtonProps ib = new FButtonProps(buttonLabels[no], bindStr);
                     ib.StartPosition = FormStartPosition.CenterParent;
                     ib.ShowDialog(this);
                     if (ib.DialogResult == DialogResult.OK)
                     {
-                        buttonLabels[no] = ib.value;
+                        buttonLabels[no] = ib.name;
+                        b.Text = ib.name;
+                        foreach (KeyValuePair<int, int> x in esBindings.Where(x => x.Value == no).ToList())
+                            esBindings.Remove(x.Key);
+                        foreach (int mhz in ib.esMHzValues)
+                            esBindings[mhz] = no;
                         writeConfig();
                         updateButtonLabel(no);
                     }
-
                 }
             }
         }
@@ -327,6 +360,51 @@ namespace NetComm
                 writeConfig();
             }
         }
+
+        private void miExpertSync_Click(object sender, EventArgs e)
+        {
+            if (miExpertSync.Checked)
+            {
+                FESConnection fes;
+                if (esEndPoint != null)
+                    fes = new FESConnection(esEndPoint.Address.ToString(), esEndPoint.Port);
+                else
+                    fes = new FESConnection();
+                fes.ShowDialog();
+                if (fes.DialogResult == DialogResult.OK)
+                {
+                    esConnector = ExpertSyncConnector.create(fes.host, fes.port);
+                    esEndPoint = new IPEndPoint(IPAddress.Parse(fes.host), fes.port);
+                    esConnector.disconnected += esDisconnected;
+                    esConnector.onMessage += esMessage;
+                    writeConfig();
+                    miExpertSync.Checked = esConnector.connect();
+                }
+            }
+            else
+            {
+                esConnector.disconnect();
+                miExpertSync.Checked = false;
+            }
+        }
+
+        private void esDisconnected(object sender, ExpertSync.DisconnectEventArgs e)
+        {
+            if (!e.requested)
+                MessageBox.Show("Соединение с ExpertSync потеряно!");
+            miExpertSync.Checked = false;
+        }
+
+        private void esMessage(object sender, MessageEventArgs e)
+        {
+            int mhz = ((int)e.vfoa) / 1000000;
+            if ( esBindings.ContainsKey( mhz ) ) 
+                this.Invoke( (MethodInvoker) delegate {
+                    buttons[esBindings[mhz]].Checked = true;
+                });
+        }
+
+
 
     }
 
@@ -363,5 +441,9 @@ namespace NetComm
         public JeromeConnectionParams[] connections;
         public JeromeConnectionState[] states;
         public string[] buttonLabels;
+        public int[] esMhzValues;
+        public int[] esButtons;
+        public string esHost;
+        public int esPort;
     }
 }

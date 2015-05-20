@@ -37,13 +37,13 @@
             this.miConnectionsList = new System.Windows.Forms.ToolStripMenuItem();
             this.miRelaySettings = new System.Windows.Forms.ToolStripMenuItem();
             this.miModuleSettings = new System.Windows.Forms.ToolStripMenuItem();
+            this.miExpertSync = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStrip.SuspendLayout();
             this.SuspendLayout();
             // 
             // toolStrip
             // 
             this.toolStrip.Anchor = System.Windows.Forms.AnchorStyles.None;
-            this.toolStrip.AutoSize = false;
             this.toolStrip.BackColor = System.Drawing.SystemColors.ControlDarkDark;
             this.toolStrip.Dock = System.Windows.Forms.DockStyle.None;
             this.toolStrip.Font = new System.Drawing.Font("Arial", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
@@ -52,12 +52,11 @@
             this.toolStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.ddbSettings});
             this.toolStrip.LayoutStyle = System.Windows.Forms.ToolStripLayoutStyle.VerticalStackWithOverflow;
-            this.toolStrip.Location = new System.Drawing.Point(0, 0);
+            this.toolStrip.Location = new System.Drawing.Point(24, 0);
             this.toolStrip.Name = "toolStrip";
             this.toolStrip.Padding = new System.Windows.Forms.Padding(0);
-            this.toolStrip.Size = new System.Drawing.Size(62, 291);
+            this.toolStrip.Size = new System.Drawing.Size(42, 25);
             this.toolStrip.TabIndex = 0;
-            this.toolStrip.MouseClick += new System.Windows.Forms.MouseEventHandler(this.toolStrip_MouseClick);
             // 
             // ddbSettings
             // 
@@ -70,7 +69,8 @@
             this.tssConnectionsSeparator,
             this.miConnectionsList,
             this.miRelaySettings,
-            this.miModuleSettings});
+            this.miModuleSettings,
+            this.miExpertSync});
             this.ddbSettings.Image = ((System.Drawing.Image)(resources.GetObject("ddbSettings.Image")));
             this.ddbSettings.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.ddbSettings.Name = "ddbSettings";
@@ -80,47 +80,55 @@
             // miControl
             // 
             this.miControl.Name = "miControl";
-            this.miControl.Size = new System.Drawing.Size(221, 22);
+            this.miControl.Size = new System.Drawing.Size(272, 22);
             this.miControl.Text = "Управление";
             // 
             // miWatch
             // 
             this.miWatch.Name = "miWatch";
-            this.miWatch.Size = new System.Drawing.Size(221, 22);
+            this.miWatch.Size = new System.Drawing.Size(272, 22);
             this.miWatch.Text = "Слежение";
             // 
             // tssConnectionsSeparator
             // 
             this.tssConnectionsSeparator.Name = "tssConnectionsSeparator";
-            this.tssConnectionsSeparator.Size = new System.Drawing.Size(218, 6);
+            this.tssConnectionsSeparator.Size = new System.Drawing.Size(269, 6);
             // 
             // miConnectionsList
             // 
             this.miConnectionsList.Name = "miConnectionsList";
-            this.miConnectionsList.Size = new System.Drawing.Size(221, 22);
+            this.miConnectionsList.Size = new System.Drawing.Size(272, 22);
             this.miConnectionsList.Text = "Подключения";
             this.miConnectionsList.Click += new System.EventHandler(this.miConnectionsList_Click);
             // 
             // miRelaySettings
             // 
             this.miRelaySettings.Name = "miRelaySettings";
-            this.miRelaySettings.Size = new System.Drawing.Size(221, 22);
+            this.miRelaySettings.Size = new System.Drawing.Size(272, 22);
             this.miRelaySettings.Text = "Настройки реле";
             this.miRelaySettings.Click += new System.EventHandler(this.miRelaySettings_Click);
             // 
             // miModuleSettings
             // 
             this.miModuleSettings.Name = "miModuleSettings";
-            this.miModuleSettings.Size = new System.Drawing.Size(221, 22);
+            this.miModuleSettings.Size = new System.Drawing.Size(272, 22);
             this.miModuleSettings.Text = "Настройки модуля";
             this.miModuleSettings.Click += new System.EventHandler(this.miModuleSettings_Click);
+            // 
+            // miExpertSync
+            // 
+            this.miExpertSync.CheckOnClick = true;
+            this.miExpertSync.Name = "miExpertSync";
+            this.miExpertSync.Size = new System.Drawing.Size(272, 22);
+            this.miExpertSync.Text = "Соединение с ExpertSync";
+            this.miExpertSync.Click += new System.EventHandler(this.miExpertSync_Click);
             // 
             // FMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 18F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.SystemColors.ControlDarkDark;
-            this.ClientSize = new System.Drawing.Size(58, 288);
+            this.ClientSize = new System.Drawing.Size(104, 288);
             this.Controls.Add(this.toolStrip);
             this.Font = new System.Drawing.Font("Arial", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedToolWindow;
@@ -128,11 +136,13 @@
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.Name = "FMain";
-            this.Text = "Net Comm";
+            this.Text = "Ant Comm";
             this.Load += new System.EventHandler(this.FMain_Load);
+            this.MouseClick += new System.Windows.Forms.MouseEventHandler(this.form_MouseClick);
             this.toolStrip.ResumeLayout(false);
             this.toolStrip.PerformLayout();
             this.ResumeLayout(false);
+            this.PerformLayout();
 
         }
 
@@ -146,6 +156,7 @@
         private System.Windows.Forms.ToolStripMenuItem miControl;
         private System.Windows.Forms.ToolStripMenuItem miWatch;
         private System.Windows.Forms.ToolStripMenuItem miRelaySettings;
+        private System.Windows.Forms.ToolStripMenuItem miExpertSync; 
     }
 }
 
