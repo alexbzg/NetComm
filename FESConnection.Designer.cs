@@ -1,4 +1,4 @@
-﻿namespace NetComm
+﻿namespace ExpertSync
 {
     partial class FESConnection
     {

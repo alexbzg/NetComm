@@ -17,10 +17,10 @@ namespace NetComm
 {
     public partial class FMain : Form
     {
-        public static int[] lines = { 5, 4, 3, 2, 1, 6 };
+        public static int[] lines = { 5, 4, 3, 2, 1, 6, 7 };
         //public static int buttonsQty = 6;
 
-        private Dictionary<JeromeConnectionParams, JeromeConnectionState> connections = new Dictionary<JeromeConnectionParams,JeromeConnectionState>();
+        private Dictionary<JeromeConnectionParams, ConnectionFormState> connections = new Dictionary<JeromeConnectionParams,ConnectionFormState>();
         private List<CheckBox> buttons = new List<CheckBox>();
         private List<string> buttonLabels = new List<string>();
         private Dictionary<JeromeConnectionParams, ToolStripMenuItem> menuControl = new Dictionary<JeromeConnectionParams, ToolStripMenuItem>();
@@ -30,6 +30,10 @@ namespace NetComm
         private Dictionary<int, int> esBindings = new Dictionary< int, int> ();
         private ExpertSyncConnector esConnector;
         private IPEndPoint esEndPoint;
+        private AppState appState;
+        private bool loaded = false;
+        private JeromeConnectionParams connectionFromArgs = null;
+        private bool formSPModified = false;
 
         private bool connected
         {
@@ -41,16 +45,19 @@ namespace NetComm
 
         private void updateButtonLabel(int no)
         {
-            buttons[no].Text = (no + 1).ToString();
-            if (!buttonLabels[no].Equals(string.Empty))
-                buttons[no].Text += " " + buttonLabels[no];
+            if (buttonLabels[no].Equals(string.Empty))
+                buttons[no].Text = (no + 1).ToString();
+            else
+                buttons[no].Text = buttonLabels[no];
         }
 
-        public FMain()
+        public FMain( string[] args )
         {
             InitializeComponent();
             Width = 200;
             readConfig();
+            if (args.Count() > 0)
+                connectionFromArgs = connections.Keys.ToList().Find(item => item.name.Equals(args[0]));
             for (int co = buttonLabels.Count(); co < lines.Count(); co++)
                 buttonLabels.Add("");
             miRelaySettings.Enabled = connections.Count > 0;
@@ -122,7 +129,19 @@ namespace NetComm
                 menuWatch[cp].Visible = false;
                 menuWatch[cp].Checked = false;
                 menuControl[cp].Checked = true;
+                this.Text = cp.name;
                 updateButtonsMode();
+                string linesState = connections[cp].controller.readlines();
+                for (var c = 0; c < lines.Count(); c++)
+                {
+                    connections[cp].controller.setLineMode(lines[c], 0);
+                    buttons[c].Checked = linesState[lines[c] - 1] == '1';
+                }
+                if ( !formSPModified && !connections[cp].formLocation.IsEmpty )
+                    this.DesktopBounds =
+                            new Rectangle(connections[cp].formLocation, connections[cp].formSize);
+                writeConfig();
+
                 return true;
             }
             else
@@ -140,13 +159,14 @@ namespace NetComm
         {
             JeromeConnectionParams c = ((JeromeController)obj).connectionParams;
             if (!e.requested)
-                MessageBox.Show( c.name + ": cвязь потеряна!", "NetCommAnt" );
+                MessageBox.Show( c.name + ": cвязь потеряна!", "Коммутатор антенн" );
             connections[c].active = false;
             this.Invoke((MethodInvoker)delegate
             {
                 menuWatch[c].Visible = true;
                 menuControl[c].Checked = false;
                 updateButtonsMode();
+                this.Text = "Ant Comm";
             });
         }
 
@@ -167,6 +187,7 @@ namespace NetComm
                 b.BackColor = SystemColors.Control;
                 b.Appearance = Appearance.Button;
                 b.Enabled = false;
+                b.Anchor = AnchorStyles.Right | AnchorStyles.Left;
                 b.CheckedChanged += new EventHandler(delegate(object obj, EventArgs ea)
                 {
                     if (b.Checked)
@@ -187,20 +208,40 @@ namespace NetComm
             }
             buttonsColor = buttons[0].ForeColor;
             watchTimer = new System.Threading.Timer(obj => onWatchTimer(), null, 1000, 1000);
+            if (appState != null )
+            {
+                if (connectionFromArgs != null)
+                    connect(connectionFromArgs);
+                else if (appState.lastConnection > -1 && connections.ContainsKey( appState.connections[appState.lastConnection] ) )
+                    connect(appState.connections[appState.lastConnection]);
 
+            }
+            loaded = true;
         }
 
+        
         public void writeConfig()
         {
+            if (!loaded)
+                return;
             using (StreamWriter sw = new StreamWriter(Application.StartupPath + "\\config.xml"))
             {
                 AppState s = new AppState();
+                s.lastConnection = -1;
 
                 s.connections = new JeromeConnectionParams[connections.Count];
-                s.states = new JeromeConnectionState[connections.Count];
+                s.states = new ConnectionFormState[connections.Count];
                 int co = 0;
-                foreach (KeyValuePair<JeromeConnectionParams, JeromeConnectionState> x in connections)
+                foreach (KeyValuePair<JeromeConnectionParams, ConnectionFormState> x in connections)
                 {
+                    if (x.Value.active)
+                    {
+                        s.lastConnection = co;
+                        System.Drawing.Rectangle bounds = this.WindowState != FormWindowState.Normal ? this.RestoreBounds : this.DesktopBounds;
+                        x.Value.formLocation = bounds.Location;
+                        x.Value.formSize = bounds.Size;
+                        formSPModified = false;
+                    }
                     s.connections[co] = x.Key;
                     s.states[co] = x.Value;
                     co++;
@@ -223,6 +264,7 @@ namespace NetComm
                     s.esPort = esEndPoint.Port;
                 }
 
+
                 XmlSerializer ser = new XmlSerializer(typeof(AppState));
                 ser.Serialize(sw, s);
             }
@@ -239,25 +281,30 @@ namespace NetComm
                 {
                     try
                     {
-                        AppState s = (AppState)ser.Deserialize(fs);
-                        if (s.connections != null)
-                            for (int co = 0; co < s.connections.Count(); co++)
+                        appState = (AppState)ser.Deserialize(fs);
+                        if (appState.connections != null)
+                            if ( appState.states == null || appState.states.Count() == 0 )
+                                appState.states = new ConnectionFormState[appState.connections.Count()];
+                            for (int co = 0; co < appState.connections.Count(); co++)
                             {
-                                s.states[co].active = false;
-                                connections[s.connections[co]] = s.states[co];
+                                if (appState.states[co] == null)
+                                    appState.states[co] = new ConnectionFormState();
+                                appState.states[co].active = false;
+                                connections[appState.connections[co]] = appState.states[co];
                             }
-                        if (s.buttonLabels != null) 
-                            buttonLabels = s.buttonLabels.ToList();
-                        if ( s.esMhzValues != null )
-                            for (int co = 0; co < s.esButtons.Count(); co++)
-                                esBindings[s.esMhzValues[co]] = s.esButtons[co];
+                        if (appState.buttonLabels != null) 
+                            buttonLabels = appState.buttonLabels.ToList();
+                        if ( appState.esMhzValues != null )
+                            for (int co = 0; co < appState.esButtons.Count(); co++)
+                                esBindings[appState.esMhzValues[co]] = appState.esButtons[co];
                         IPAddress hostIP;
-                        if (IPAddress.TryParse(s.esHost, out hostIP))
-                            esEndPoint = new IPEndPoint(hostIP, s.esPort);
+                        if (IPAddress.TryParse(appState.esHost, out hostIP))
+                            esEndPoint = new IPEndPoint(hostIP, appState.esPort);
                         result = true;
                     }
-                    catch (Exception)
+                    catch (Exception e)
                     {
+                        System.Diagnostics.Debug.WriteLine(e.Message);
                     }
                 }
             }
@@ -281,7 +328,7 @@ namespace NetComm
         private void connectionCreated(object obj, EventArgs e)
         {
             JeromeConnectionParams c = (JeromeConnectionParams)obj;
-            connections[c] = new JeromeConnectionState();
+            connections[c] = new ConnectionFormState();
             createConnectionMI(c);
             miRelaySettings.Enabled = true;
             writeConfig();
@@ -315,7 +362,7 @@ namespace NetComm
 
         private void form_MouseClick(object sender, MouseEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine("Mouse click");
+            //System.Diagnostics.Debug.WriteLine("Mouse click");
             if (e.Button == MouseButtons.Right)
             {
                 CheckBox b = null;
@@ -405,6 +452,40 @@ namespace NetComm
         }
 
 
+        private void FMain_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode >= Keys.NumPad0 && e.KeyCode <= Keys.NumPad9 && e.KeyCode - Keys.NumPad0 - 1 < buttons.Count)
+            {
+                CheckBox b = buttons[e.KeyCode - Keys.NumPad0 - 1];
+                if (b.Enabled)
+                    b.Checked = !b.Checked;
+               /* else
+                    MessageBox.Show((e.KeyCode - Keys.NumPad0 - 1).ToString());*/
+            }
+        }
+
+        private void FMain_ResizeEnd(object sender, EventArgs e)
+        {
+            int bHeight = ( this.ClientSize.Height - 50 ) / lines.Count() - 2;
+            for (int co = 0; co < buttons.Count(); co++)
+            {
+                CheckBox b = buttons[co];
+                b.Height = bHeight;
+                b.Top = 25 + (bHeight + 2) * co;
+            }
+            if (!connections.Values.ToList().Exists(item => item.active))
+                formSPModified = true;
+            writeConfig();
+        }
+
+        private void FMain_LocationChanged(object sender, EventArgs e)
+        {
+            if (!connections.Values.ToList().Exists(item => item.active))
+                formSPModified = true;
+            writeConfig();
+        }
+
+
 
     }
 
@@ -436,14 +517,21 @@ namespace NetComm
         }
     }
 
+    public class ConnectionFormState : JeromeConnectionState
+    {
+        public System.Drawing.Point formLocation;
+        public System.Drawing.Size formSize;
+    }
+
     public class AppState
     {
         public JeromeConnectionParams[] connections;
-        public JeromeConnectionState[] states;
+        public ConnectionFormState[] states;
         public string[] buttonLabels;
         public int[] esMhzValues;
         public int[] esButtons;
         public string esHost;
         public int esPort;
+        public int lastConnection;
     }
 }

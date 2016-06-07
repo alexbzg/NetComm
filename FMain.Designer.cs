@@ -43,7 +43,7 @@
             // 
             // toolStrip
             // 
-            this.toolStrip.Anchor = System.Windows.Forms.AnchorStyles.None;
+            this.toolStrip.Anchor = System.Windows.Forms.AnchorStyles.Top;
             this.toolStrip.BackColor = System.Drawing.SystemColors.ControlDarkDark;
             this.toolStrip.Dock = System.Windows.Forms.DockStyle.None;
             this.toolStrip.Font = new System.Drawing.Font("Arial", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
@@ -131,13 +131,17 @@
             this.ClientSize = new System.Drawing.Size(104, 288);
             this.Controls.Add(this.toolStrip);
             this.Font = new System.Drawing.Font("Arial", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedToolWindow;
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.SizableToolWindow;
+            this.KeyPreview = true;
             this.Margin = new System.Windows.Forms.Padding(4);
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.Name = "FMain";
             this.Text = "Ant Comm";
             this.Load += new System.EventHandler(this.FMain_Load);
+            this.LocationChanged += new System.EventHandler(this.FMain_LocationChanged);
+            this.SizeChanged += new System.EventHandler(this.FMain_ResizeEnd);
+            this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.FMain_KeyDown);
             this.MouseClick += new System.Windows.Forms.MouseEventHandler(this.form_MouseClick);
             this.toolStrip.ResumeLayout(false);
             this.toolStrip.PerformLayout();

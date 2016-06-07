@@ -235,15 +235,17 @@ namespace Jerome
                     if (bytesRead > 0)
                     {
                         // There might be more data, so store the data received so far.
-                        state.sb.Append(Encoding.ASCII.GetString(state.buffer, 0, bytesRead));
-
-                        System.Diagnostics.Debug.WriteLine("received: " + state.sb.ToString());
-
-                        string reply = state.sb.ToString();
-
-                        if (reply.Contains('\n'))
-                            processReply(reply);
-                        else
+                        int co = 0;
+                        while ( co < bytesRead ) {
+                            string ch = Encoding.ASCII.GetString(state.buffer, co++, 1);
+                            state.sb.Append( ch );
+                            if ( ch.Equals( "\n" ) ) {
+                                System.Diagnostics.Debug.WriteLine("received: " + state.sb.ToString());
+                                processReply( state.sb.ToString() );
+                                state.sb.Clear();
+                            }
+                        }
+                        if ( state.sb.Length > 0 )
                             socket.BeginReceive(state.buffer, 0, StateObject.BufferSize, 0,
                                 new AsyncCallback(receiveCallback), state);
                         receiveDone.Set();
@@ -268,7 +270,7 @@ namespace Jerome
                 string line = match.Groups[1].Value;
                 int lineState = match.Groups[2].Value == "0" ? 1 : 0;
             }
-            else if ( !reply.StartsWith( "#SLINF" ) )
+            else if ( !reply.StartsWith( "#SLINF" ) && !reply.Contains( "FLAGS" ) && !reply.Contains( "JConfig" ) )
             {
                 replyTimer.Change(Timeout.Infinite, Timeout.Infinite);
                 if (currentCmd.cb != null)
