@@ -78,7 +78,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ExpertSync.cs" />
     <Compile Include="FButtonProps.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -97,11 +96,11 @@
     <Compile Include="FConnectionsList.Designer.cs">
       <DependentUpon>FConnectionsList.cs</DependentUpon>
     </Compile>
-    <Compile Include="FESConnection.cs">
+    <Compile Include="ExpertSync.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="FESConnection.Designer.cs">
-      <DependentUpon>FESConnection.cs</DependentUpon>
+    <Compile Include="ExpertSync.Designer.cs">
+      <DependentUpon>ExpertSync.cs</DependentUpon>
     </Compile>
     <Compile Include="FModuleSettings.cs">
       <SubType>Form</SubType>
@@ -133,8 +132,8 @@
     <EmbeddedResource Include="FConnectionsList.resx">
       <DependentUpon>FConnectionsList.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="FESConnection.resx">
-      <DependentUpon>FESConnection.cs</DependentUpon>
+    <EmbeddedResource Include="ExpertSync.resx">
+      <DependentUpon>ExpertSync.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="FMain.resx">
       <DependentUpon>FMain.cs</DependentUpon>
